@@ -32,13 +32,13 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG')]) {
+                
                     sh '''
                     aws eks update-kubeconfig --region ap-southeast-2 --name trend
                     kubectl apply -f k8s/deployment.yaml
                     kubectl apply -f k8s/service.yaml
                     '''
-                }
+                
             }
         }
     }
