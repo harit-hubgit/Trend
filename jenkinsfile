@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/harit-hubgit/Trend.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'echo "Building application..."'
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                sh '''
+                docker build -t harit-hubgit/trend-app:latest .
+                docker login -u $DOCKER_USER -p $DOCKER_PASS
+                docker push harit-hubgit/trend-app:latest
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                '''
+            }
+        }
+    }
+}
