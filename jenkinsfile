@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = "haritdockerhub/trend-app:latest"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -16,21 +20,26 @@ pipeline {
 
         stage('Docker Build & Push') {
             steps {
-                sh '''
-                docker build -t harit-hubgit/trend-app:latest .
-                docker login -u $DOCKER_USER -p $DOCKER_PASS
-                docker push harit-hubgit/trend-app:latest
-                '''
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    docker build -t $DOCKER_IMAGE .
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push $DOCKER_IMAGE
+                    '''
+                }
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                kubectl apply -f k8s/deployment.yaml
-                kubectl apply -f k8s/service.yaml
-                '''
+                withCredentials([file(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
+                    '''
+                }
             }
         }
     }
 }
+
